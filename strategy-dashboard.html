@@ -3,741 +3,627 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>火土金策略機 — 策略研發儀表板</title>
+<title>火土金策略機 — E1 Research Dashboard</title>
 <style>
-  :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --surface2: #22263a;
-    --border: #2e3350;
-    --text: #e2e8f0;
-    --muted: #8892a4;
-    --green: #22c55e;
-    --yellow: #f59e0b;
-    --red: #ef4444;
-    --blue: #3b82f6;
-    --purple: #a855f7;
-    --cyan: #06b6d4;
-    --accent: #4f7fff;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: 'Menlo', 'SF Mono', monospace; font-size: 13px; min-height: 100vh; }
-
-  /* Layout */
-  .app { display: flex; flex-direction: column; min-height: 100vh; }
-  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; }
-  .header-title { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
-  .header-sub { color: var(--muted); font-size: 11px; }
-  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-  /* Nav */
-  .nav { display: flex; gap: 2px; padding: 8px 24px 0; background: var(--surface); border-bottom: 1px solid var(--border); }
-  .nav-tab { padding: 8px 16px; font-size: 12px; cursor: pointer; border-radius: 6px 6px 0 0; color: var(--muted); border: 1px solid transparent; border-bottom: none; position: relative; bottom: -1px; transition: all .15s; }
-  .nav-tab:hover { color: var(--text); background: var(--surface2); }
-  .nav-tab.active { color: var(--text); background: var(--bg); border-color: var(--border); }
-
-  /* Content */
-  .content { padding: 24px; flex: 1; }
-
-  /* Cards */
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
-  .card-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); }
-  .card-body { padding: 16px; }
-
-  /* Grid */
-  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-
-  /* Stat card */
-  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
-  .stat-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-  .stat-value { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
-  .stat-sub { font-size: 10px; color: var(--muted); margin-top: 4px; }
-
-  /* Track cards */
-  .track-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; }
-  .track-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-  .track-label { font-size: 10px; font-weight: 700; letter-spacing: .8px; color: var(--muted); }
-  .track-name { font-size: 13px; font-weight: 600; }
-  .track-sched { font-size: 10px; color: var(--cyan); font-family: monospace; margin-top: 2px; }
-  .track-next { font-size: 10px; color: var(--muted); margin-top: 6px; }
-  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
-  .badge-green { background: rgba(34,197,94,.15); color: var(--green); border: 1px solid rgba(34,197,94,.3); }
-  .badge-yellow { background: rgba(245,158,11,.15); color: var(--yellow); border: 1px solid rgba(245,158,11,.3); }
-  .badge-red { background: rgba(239,68,68,.15); color: var(--red); border: 1px solid rgba(239,68,68,.3); }
-  .badge-blue { background: rgba(59,130,246,.15); color: var(--blue); border: 1px solid rgba(59,130,246,.3); }
-  .badge-purple { background: rgba(168,85,247,.15); color: var(--purple); border: 1px solid rgba(168,85,247,.3); }
-  .badge-gray { background: rgba(136,146,164,.15); color: var(--muted); border: 1px solid rgba(136,146,164,.3); }
-
-  /* Table */
-  table { width: 100%; border-collapse: collapse; font-size: 12px; }
-  th { text-align: left; padding: 8px 12px; font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600; }
-  td { padding: 10px 12px; border-bottom: 1px solid rgba(46,51,80,.5); vertical-align: top; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,.02); }
-  .mono { font-family: 'Menlo', monospace; }
-  .good { color: var(--green); }
-  .warn { color: var(--yellow); }
-  .bad { color: var(--red); }
-  .dim { color: var(--muted); }
-
-  /* Progress bar */
-  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 6px; }
-  .progress-fill { height: 100%; border-radius: 2px; transition: width .3s; }
-
-  /* Metric pill */
-  .metric-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(46,51,80,.4); }
-  .metric-row:last-child { border-bottom: none; }
-  .metric-name { color: var(--muted); font-size: 11px; }
-  .metric-val { font-size: 12px; font-weight: 600; font-family: monospace; }
-
-  /* Fold grid */
-  .fold-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 8px; }
-  .fold-cell { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 6px 4px; text-align: center; }
-  .fold-num { font-size: 9px; color: var(--muted); }
-  .fold-sr { font-size: 12px; font-weight: 700; margin: 2px 0; }
-
-  /* Pill tags */
-  .tag { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 9px; font-weight: 600; margin-right: 4px; text-transform: uppercase; letter-spacing: .3px; }
-  .tag-pass { background: rgba(34,197,94,.2); color: var(--green); }
-  .tag-fail { background: rgba(239,68,68,.2); color: var(--red); }
-  .tag-warn { background: rgba(245,158,11,.2); color: var(--yellow); }
-  .tag-info { background: rgba(59,130,246,.2); color: var(--blue); }
-
-  /* Timeline bar */
-  .timeline { display: flex; gap: 0; margin: 12px 0; border-radius: 6px; overflow: hidden; height: 28px; }
-  .timeline-seg { display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; letter-spacing: .4px; }
-
-  /* Log */
-  .log-line { font-size: 11px; padding: 4px 0; border-bottom: 1px solid rgba(46,51,80,.3); display: flex; gap: 12px; }
-  .log-ts { color: var(--muted); min-width: 140px; }
-  .log-msg { flex: 1; }
-
-  /* Section title */
-  .section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .7px; color: var(--muted); margin-bottom: 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-
-  /* Expandable */
-  .expandable { cursor: pointer; }
-  .expandable:hover { background: rgba(79,127,255,.05); }
-  .detail-row { background: var(--surface2); }
-  .detail-content { padding: 16px; }
-
-  /* Sidebar layout */
-  .sidebar-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
-
-  /* Star champion */
-  .champion-glow { border-color: rgba(250,204,21,.4); box-shadow: 0 0 20px rgba(250,204,21,.08); }
-
-  input[type="text"] { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; color: var(--text); font-size: 12px; outline: none; width: 260px; }
-  input[type="text"]:focus { border-color: var(--accent); }
-  select { background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px; color: var(--text); font-size: 12px; outline: none; }
+:root {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #1c2128; --border: #30363d;
+  --text: #e6edf3; --muted: #7d8590; --accent: #58a6ff;
+  --green: #3fb950; --red: #f85149; --yellow: #d29922; --orange: #e3b341;
+  --purple: #bc8cff; --cyan: #79c0ff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; min-height: 100vh; }
+a { color: var(--accent); text-decoration: none; }
+.header { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.header-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; }
+.header-badge { background: var(--bg3); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-size: 11px; color: var(--muted); }
+.live-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; display: inline-block; animation: pulse 2s infinite; margin-right: 4px; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.last-updated { font-size: 11px; color: var(--muted); }
+.kpi-strip { display: flex; gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+.kpi-card { flex: 1; background: var(--bg2); padding: 16px 20px; min-width: 120px; }
+.kpi-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.kpi-value { font-size: 28px; font-weight: 700; line-height: 1; }
+.kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.kpi-green { color: var(--green); } .kpi-red { color: var(--red); } .kpi-yellow { color: var(--yellow); }
+.kpi-blue { color: var(--accent); } .kpi-muted { color: var(--muted); }
+.tabs-nav { background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; gap: 0; overflow-x: auto; }
+.tab-btn { padding: 12px 16px; cursor: pointer; border: none; background: none; color: var(--muted); font-size: 13px; border-bottom: 2px solid transparent; transition: all 0.15s; white-space: nowrap; }
+.tab-btn:hover { color: var(--text); } .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+.main { padding: 20px 24px; max-width: 1400px; }
+.tab-pane { display: none; } .tab-pane.active { display: block; }
+.section { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 16px; overflow: hidden; }
+.section-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+.section-title { font-weight: 600; font-size: 13px; }
+.section-body { padding: 16px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th { background: var(--bg3); color: var(--muted); padding: 8px 12px; text-align: left; font-weight: 500; white-space: nowrap; border-bottom: 1px solid var(--border); }
+td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; } tr:hover td { background: rgba(255,255,255,0.02); }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.badge-green { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+.badge-red { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+.badge-yellow { background: rgba(210,153,34,0.15); color: var(--yellow); border: 1px solid rgba(210,153,34,0.3); }
+.badge-blue { background: rgba(88,166,255,0.15); color: var(--accent); border: 1px solid rgba(88,166,255,0.3); }
+.badge-gray { background: rgba(125,133,144,0.15); color: var(--muted); border: 1px solid rgba(125,133,144,0.3); }
+.badge-orange { background: rgba(227,179,65,0.15); color: var(--orange); border: 1px solid rgba(227,179,65,0.3); }
+.cand-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+.cand-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
+.cand-name { font-size: 15px; font-weight: 700; }
+.cand-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.metrics-row { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 12px; }
+.metric { text-align: center; }
+.metric-val { font-size: 20px; font-weight: 700; }
+.metric-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.track-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.track-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 14px; }
+.track-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.track-a { color: var(--accent); } .track-b { color: var(--green); } .track-c { color: var(--yellow); } .track-d { color: var(--purple); }
+.track-name { font-weight: 600; font-size: 13px; margin-bottom: 4px; }
+.track-sched { font-size: 11px; color: var(--muted); }
+.thresh-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 12px; }
+.thresh-title { font-size: 12px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.thresh-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid rgba(48,54,61,0.5); font-size: 12px; }
+.thresh-row:last-child { border-bottom: none; }
+.thresh-key { color: var(--muted); } .thresh-val { font-weight: 600; color: var(--cyan); }
+.loading { text-align: center; padding: 40px; color: var(--muted); }
+.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; margin-right: 8px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.log-row-pass td:first-child { border-left: 3px solid var(--green); }
+.log-row-fail td:first-child { border-left: 3px solid var(--red); }
+.log-row-skip td:first-child { border-left: 3px solid var(--border); }
+.log-row-mine td:first-child { border-left: 3px solid var(--accent); }
+.version-row-champion { background: rgba(63,185,80,0.05); }
+.iter-pill { display: inline-block; background: var(--bg3); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; font-size: 11px; font-family: monospace; }
+.journal-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin-bottom: 12px; }
+.journal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 12px; }
+.journal-id { font-size: 11px; color: var(--muted); font-family: monospace; }
+.journal-title { font-weight: 600; font-size: 14px; }
+.journal-body { font-size: 12px; color: var(--muted); line-height: 1.7; }
+@media (max-width: 900px) {
+  .kpi-strip { flex-wrap: wrap; } .kpi-card { min-width: 50%; }
+  .grid-2, .grid-3, .track-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
-<div class="app">
 
-<!-- Header -->
 <div class="header">
-  <div class="live-dot"></div>
-  <div>
-    <div class="header-title">🔥 火土金策略機 — 策略研發儀表板</div>
-    <div class="header-sub">Pipeline v2.0 · 四軌全天候運行 · 資料來源: Binance API</div>
+  <div class="header-title">
+    🔥 火土金策略機
+    <span class="header-badge"><span class="live-dot"></span>E1 Research Pipeline</span>
+    <span class="header-badge">GGPowermax/strategy-dashboard</span>
   </div>
-  <div style="margin-left:auto; color:var(--muted); font-size:11px;">
-    最後更新：<span id="now-ts"></span>
-  </div>
+  <div class="last-updated" id="lastUpdated">正在載入…</div>
 </div>
 
-<!-- Nav -->
-<div class="nav">
-  <div class="nav-tab active" onclick="switchTab('overview')">📡 Pipeline 總覽</div>
-  <div class="nav-tab" onclick="switchTab('mining')">⛏️ 挖礦隊列</div>
-  <div class="nav-tab" onclick="switchTab('candidates')">🧪 候選庫 (L1)</div>
-  <div class="nav-tab" onclick="switchTab('library')">📚 策略庫 (L2)</div>
-  <div class="nav-tab" onclick="switchTab('history')">📈 迭代歷史</div>
-  <div class="nav-tab" onclick="switchTab('journal')">📒 決策日誌</div>
+<div class="kpi-strip">
+  <div class="kpi-card"><div class="kpi-label">策略挖礦總計</div><div class="kpi-value kpi-blue" id="kpiMined">—</div><div class="kpi-sub" id="kpiMinedSub">—</div></div>
+  <div class="kpi-card"><div class="kpi-label">L1 候選庫</div><div class="kpi-value kpi-yellow" id="kpiCandidates">—</div><div class="kpi-sub" id="kpiCandSub">—</div></div>
+  <div class="kpi-card"><div class="kpi-label">L2 策略庫</div><div class="kpi-value kpi-muted" id="kpiStrategies">—</div><div class="kpi-sub" id="kpiStratSub">—</div></div>
+  <div class="kpi-card"><div class="kpi-label">L1 勝率</div><div class="kpi-value" id="kpiL1Rate">—</div><div class="kpi-sub">PASS / 已回測</div></div>
+  <div class="kpi-card"><div class="kpi-label">Pending 隊列</div><div class="kpi-value kpi-yellow" id="kpiPending">—</div><div class="kpi-sub">待回測策略數</div></div>
+  <div class="kpi-card"><div class="kpi-label">最新回測 OOS SR</div><div class="kpi-value" id="kpiLastSR" style="font-size:22px">—</div><div class="kpi-sub" id="kpiLastSRSub">—</div></div>
 </div>
 
-<div class="content">
+<div class="tabs-nav">
+  <button class="tab-btn active" onclick="showTab('overview',this)">📊 Pipeline 總覽</button>
+  <button class="tab-btn" onclick="showTab('mining',this)">⛏ 挖礦隊列</button>
+  <button class="tab-btn" onclick="showTab('candidates',this)">🏆 候選庫 (L1)</button>
+  <button class="tab-btn" onclick="showTab('strategies',this)">🚀 策略庫 (L2)</button>
+  <button class="tab-btn" onclick="showTab('history',this)">📜 迭代歷史</button>
+  <button class="tab-btn" onclick="showTab('journal',this)">📓 決策日誌</button>
+</div>
 
-<!-- ═══════════════════════════════════════════════ TAB: OVERVIEW -->
-<div id="tab-overview">
-  <!-- KPI row -->
-  <div class="grid-4">
-    <div class="stat-card">
-      <div class="stat-label">策略庫存量</div>
-      <div class="stat-value" style="color:var(--green)">1</div>
-      <div class="stat-sub">LIVE 可部署</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">候選等待 L2</div>
-      <div class="stat-value" style="color:var(--yellow)">1</div>
-      <div class="stat-sub">AWAITING_L2</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">挖礦隊列 PENDING</div>
-      <div class="stat-value" style="color:var(--blue)">0</div>
-      <div class="stat-sub">待回測</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">冠軍策略 OOS SR</div>
-      <div class="stat-value" style="color:var(--cyan)">2.53</div>
-      <div class="stat-sub">E1_v4_hard24 · ETHUSDT</div>
+<div class="main">
+
+<!-- OVERVIEW TAB -->
+<div id="tab-overview" class="tab-pane active">
+  <div class="section">
+    <div class="section-header"><span class="section-title">🔄 四軌排程 Pipeline</span></div>
+    <div class="section-body">
+      <div class="track-grid">
+        <div class="track-card"><div class="track-label track-a">Track A</div><div class="track-name">策略挖礦</div><div class="track-sched">00:00 / 06:00 / 12:00 / 18:00 UTC</div><div style="margin-top:8px;font-size:11px;color:var(--muted)">社群瀏覽 → Decomposer 三柱 → MINE_*.md</div></div>
+        <div class="track-card"><div class="track-label track-b">Track B</div><div class="track-name">Layer 1 回測</div><div class="track-sched">02:00 / 08:00 / 14:00 / 20:00 UTC</div><div style="margin-top:8px;font-size:11px;color:var(--muted)">PENDING → IS=1095/OOS=180/6-fold → CAND_*.md</div></div>
+        <div class="track-card"><div class="track-label track-c">Track C</div><div class="track-name">Layer 2 複審</div><div class="track-sched">04:00 / 10:00 / 16:00 / 22:00 UTC</div><div style="margin-top:8px;font-size:11px;color:var(--muted)">AWAITING_L2 → IS=1095/OOS=365/3-fold → STRAT_*.md</div></div>
+        <div class="track-card"><div class="track-label track-d">Track D</div><div class="track-name">效率監控</div><div class="track-sched">每月 15 日 09:00 UTC</div><div style="margin-top:8px;font-size:11px;color:var(--muted)">滾動 90 日實盤監控 → MON_*.md</div></div>
+      </div>
     </div>
   </div>
-
-  <!-- 四軌 -->
-  <div class="section-title">四軌流水線</div>
-  <div class="grid-2" style="margin-bottom:16px;">
-
-    <div class="track-card">
-      <div class="track-header">
-        <div>
-          <div class="track-label">Track A</div>
-          <div class="track-name">策略挖礦</div>
-          <div class="track-sched">00:00 / 06:00 / 12:00 / 18:00</div>
-        </div>
-        <span class="badge badge-blue">SCHEDULED</span>
-      </div>
-      <div style="font-size:11px; color:var(--muted); line-height:1.6;">
-        社群神人策略 → Decomposer 驗證 → mining_queue/<br>
-        來源：TradingView → Twitter → GitHub → Reddit
-      </div>
-      <div class="timeline" style="margin-top:10px;">
-        <div class="timeline-seg" style="width:25%;background:rgba(59,130,246,.3);color:var(--blue);">00</div>
-        <div class="timeline-seg" style="width:25%;background:rgba(59,130,246,.15);color:var(--muted);">06</div>
-        <div class="timeline-seg" style="width:25%;background:rgba(59,130,246,.15);color:var(--muted);">12</div>
-        <div class="timeline-seg" style="width:25%;background:rgba(59,130,246,.15);color:var(--muted);">18</div>
-      </div>
-    </div>
-
-    <div class="track-card">
-      <div class="track-header">
-        <div>
-          <div class="track-label">Track B</div>
-          <div class="track-name">回測引擎</div>
-          <div class="track-sched">02:00 / 08:00 / 14:00 / 20:00</div>
-        </div>
-        <span class="badge badge-purple">NEXT: ~1h</span>
-      </div>
-      <div style="font-size:11px; color:var(--muted); line-height:1.6;">
-        PENDING → Binance 歷史資料 → Layer 1 Harness<br>
-        IS=1095 / OOS=180 / 6-fold · 5bps+10bps
-      </div>
-      <div class="timeline" style="margin-top:10px;">
-        <div class="timeline-seg" style="width:25%;background:rgba(168,85,247,.15);color:var(--muted);">02</div>
-        <div class="timeline-seg" style="width:25%;background:rgba(168,85,247,.3);color:var(--purple);">08</div>
-        <div class="timeline-seg" style="width:25%;background:rgba(168,85,247,.15);color:var(--muted);">14</div>
-        <div class="timeline-seg" style="width:25%;background:rgba(168,85,247,.15);color:var(--muted);">20</div>
-      </div>
-    </div>
-
-    <div class="track-card">
-      <div class="track-header">
-        <div>
-          <div class="track-label">Track C</div>
-          <div class="track-name">主管複審</div>
-          <div class="track-sched">04:00 / 10:00 / 16:00 / 22:00</div>
-        </div>
-        <span class="badge badge-yellow">SCHEDULED</span>
-      </div>
-      <div style="font-size:11px; color:var(--muted); line-height:1.6;">
-        AWAITING_L2 → Layer 2 嚴格 Harness → strategy_library/<br>
-        IS=1095 / OOS=365 / 3-fold · 7bps+15bps
-      </div>
-      <div class="timeline" style="margin-top:10px;">
-        <div class="timeline-seg" style="width:25%;background:rgba(245,158,11,.15);color:var(--muted);">04</div>
-        <div class="timeline-seg" style="width:25%;background:rgba(245,158,11,.15);color:var(--muted);">10</div>
-        <div class="timeline-seg" style="width:25%;background:rgba(245,158,11,.3);color:var(--yellow);">16</div>
-        <div class="timeline-seg" style="width:25%;background:rgba(245,158,11,.15);color:var(--muted);">22</div>
-      </div>
-    </div>
-
-    <div class="track-card">
-      <div class="track-header">
-        <div>
-          <div class="track-label">Track D</div>
-          <div class="track-name">效率監控</div>
-          <div class="track-sched">每月 15 日 09:00</div>
-        </div>
-        <span class="badge badge-gray">MONTHLY</span>
-      </div>
-      <div style="font-size:11px; color:var(--muted); line-height:1.6;">
-        strategy_library/ → 滾動90天 Binance 資料<br>
-        SR警戒&lt;1.0 / 停用&lt;0.5 · PF警戒&lt;1.0 / 停用&lt;0.9
-      </div>
-      <div style="margin-top:10px; font-size:10px; color:var(--muted);">下次執行: 2026-07-15 09:00</div>
-    </div>
-  </div>
-
-  <!-- Pass gates -->
-  <div class="section-title">雙層過濾門檻</div>
   <div class="grid-2">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Layer 1 — Track B 初步 Harness</span></div>
-      <div class="card-body">
-        <table>
-          <tr><th>指標</th><th>門檻</th><th>E1v4 當前</th><th>狀態</th></tr>
-          <tr><td>OOS Sharpe (ann.)</td><td class="mono">&gt; 1.5</td><td class="mono good">2.529</td><td><span class="badge badge-green">PASS</span></td></tr>
-          <tr><td>OIS Ratio</td><td class="mono">&gt; 0.5</td><td class="mono good">0.992</td><td><span class="badge badge-green">PASS</span></td></tr>
-          <tr><td>Profit Factor</td><td class="mono">&gt; 1.0</td><td class="mono good">—</td><td><span class="badge badge-green">PASS</span></td></tr>
-          <tr><td>Param Stability</td><td class="mono">≥ 70%</td><td class="mono good">100%</td><td><span class="badge badge-green">PASS</span></td></tr>
-          <tr><td>Decomposer</td><td class="mono">≥ 3 柱</td><td class="mono good">3 柱</td><td><span class="badge badge-green">PASS</span></td></tr>
-        </table>
-      </div>
+    <div class="section">
+      <div class="section-header"><span class="section-title">📐 Layer 1 門檻</span></div>
+      <div class="section-body"><div class="thresh-card">
+        <div class="thresh-title">IS=1095 / OOS=180 bars / 6 folds / 5+10 bps</div>
+        <div class="thresh-row"><span class="thresh-key">OOS Sharpe (ann.)</span><span class="thresh-val">&gt; 1.5</span></div>
+        <div class="thresh-row"><span class="thresh-key">OIS Ratio</span><span class="thresh-val">&gt; 0.5</span></div>
+        <div class="thresh-row"><span class="thresh-key">Profit Factor</span><span class="thresh-val">&gt; 1.0</span></div>
+        <div class="thresh-row"><span class="thresh-key">Param Stability</span><span class="thresh-val">≥ 70%</span></div>
+        <div class="thresh-row"><span class="thresh-key">Decomposer 三柱</span><span class="thresh-val">必須通過</span></div>
+        <div class="thresh-row"><span class="thresh-key">DSR_UNRELIABLE</span><span class="thresh-val">低頻豁免</span></div>
+      </div></div>
     </div>
-    <div class="card">
-      <div class="card-header"><span class="card-title">Layer 2 — Track C 嚴格複審</span></div>
-      <div class="card-body">
-        <table>
-          <tr><th>指標</th><th>門檻</th><th>說明</th></tr>
-          <tr><td>OOS Sharpe (ann.)</td><td class="mono">&gt; 1.8</td><td class="dim">比 L1 更高標準</td></tr>
-          <tr><td>OIS Ratio</td><td class="mono">&gt; 0.6</td><td class="dim">更嚴格泛化檢驗</td></tr>
-          <tr><td>Profit Factor</td><td class="mono">&gt; 1.1</td><td class="dim">盈虧比要求</td></tr>
-          <tr><td>Max Drawdown</td><td class="mono">&lt; 25%</td><td class="dim">資金保護</td></tr>
-          <tr><td>OVERFIT_SUSPECT</td><td class="mono">≤ 2/3 folds</td><td class="dim">過擬合排除</td></tr>
-        </table>
-      </div>
+    <div class="section">
+      <div class="section-header"><span class="section-title">🎯 Layer 2 門檻</span></div>
+      <div class="section-body"><div class="thresh-card">
+        <div class="thresh-title">IS=1095 / OOS=365 bars / 3 folds / 7+15 bps</div>
+        <div class="thresh-row"><span class="thresh-key">Mean OOS Sharpe</span><span class="thresh-val">&gt; 1.8</span></div>
+        <div class="thresh-row"><span class="thresh-key">Mean OIS Ratio</span><span class="thresh-val">&gt; 0.6</span></div>
+        <div class="thresh-row"><span class="thresh-key">Mean Profit Factor</span><span class="thresh-val">&gt; 1.1</span></div>
+        <div class="thresh-row"><span class="thresh-key">Worst MDD</span><span class="thresh-val">&lt; 25%</span></div>
+        <div class="thresh-row"><span class="thresh-key">Overfit folds (SR&lt;0)</span><span class="thresh-val">≤ 2/3</span></div>
+        <div class="thresh-row"><span class="thresh-key">Trades/yr OOS</span><span class="thresh-val">≥ 12</span></div>
+      </div></div>
     </div>
   </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════ TAB: MINING -->
-<div id="tab-mining" style="display:none;">
-  <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
-    <input type="text" id="mine-search" placeholder="搜尋策略名稱、來源..." oninput="filterMining()">
-    <select id="mine-filter" onchange="filterMining()">
-      <option value="all">全部狀態</option>
-      <option value="PENDING">PENDING</option>
-      <option value="PASS">BACKTESTED_PASS</option>
-      <option value="FAIL">BACKTESTED_FAIL</option>
-    </select>
-    <div style="margin-left:auto; font-size:11px; color:var(--muted);" id="mine-count"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Mining Queue — 社群挖礦紀錄</span>
-      <div style="display:flex; gap:8px;">
-        <span class="badge badge-blue">PENDING: <span id="cnt-pending">0</span></span>
-        <span class="badge badge-green">PASS: <span id="cnt-pass">1</span></span>
-        <span class="badge badge-red">FAIL: <span id="cnt-fail">0</span></span>
-      </div>
-    </div>
-    <div id="mining-table">
-      <table>
-        <thead><tr>
-          <th>檔名</th><th>來源</th><th>策略邏輯摘要</th><th>Decomposer</th><th>狀態</th><th>時間</th>
-        </tr></thead>
-        <tbody id="mining-body"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- 來源說明 -->
-  <div class="card" style="margin-top:16px;">
-    <div class="card-header"><span class="card-title">挖礦來源優先序</span></div>
-    <div class="card-body">
-      <table>
-        <tr><th>#</th><th>來源</th><th>搜尋方式</th><th>重點關鍵字</th><th>特性</th></tr>
-        <tr><td class="mono" style="color:var(--yellow);">1</td><td>TradingView Scripts</td><td class="dim">Chrome MCP 瀏覽</td><td class="mono">crypto strategy, funding rate, OI</td><td>最多公開回測數據</td></tr>
-        <tr><td class="mono" style="color:var(--blue);">2</td><td>Twitter/X</td><td class="dim">WebSearch</td><td class="mono">"crypto algo" "backtest" 2025</td><td>即時 alpha 洩露</td></tr>
-        <tr><td class="mono" style="color:var(--purple);">3</td><td>GitHub</td><td class="dim">WebSearch</td><td class="mono">crypto quantitative backtest python</td><td>可直接看代碼</td></tr>
-        <tr><td class="mono" style="color:var(--green);">4</td><td>Reddit r/algotrading</td><td class="dim">WebSearch</td><td class="mono">site:reddit.com/r/algotrading crypto</td><td>量化社群討論</td></tr>
-        <tr><td class="mono" style="color:var(--muted);">5</td><td>YouTube / 部落格</td><td class="dim">WebSearch</td><td class="mono">crypto quant strategy 2026</td><td>教學型，需拆解</td></tr>
-      </table>
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════ TAB: CANDIDATES -->
-<div id="tab-candidates" style="display:none;">
-
-  <div class="section-title">候選庫 — Layer 1 通過，待 Layer 2 複審</div>
-
-  <!-- Champion card -->
-  <div class="card champion-glow" style="margin-bottom:16px;">
-    <div class="card-header">
-      <span class="card-title">⭐ 冠軍候選 — CAND_20260625_E1v4_ETHUSDT</span>
-      <span class="badge badge-yellow">AWAITING L2</span>
-    </div>
-    <div class="card-body">
-      <div class="grid-2">
-        <!-- 左：指標 -->
-        <div>
-          <div class="section-title" style="font-size:9px;">Layer 1 回測結果</div>
-          <div class="metric-row"><span class="metric-name">OOS Sharpe (ann.)</span><span class="metric-val good">2.529</span></div>
-          <div class="metric-row"><span class="metric-name">OIS Ratio (OOS/IS)</span><span class="metric-val good">0.992</span></div>
-          <div class="metric-row"><span class="metric-name">Max Drawdown</span><span class="metric-val good">-18.4%</span></div>
-          <div class="metric-row"><span class="metric-name">CAGR（估算）</span><span class="metric-val good">144%</span></div>
-          <div class="metric-row"><span class="metric-name">年化交易次數</span><span class="metric-val">32 筆/yr</span></div>
-          <div class="metric-row"><span class="metric-name">勝率</span><span class="metric-val good">71.9%</span></div>
-          <div class="metric-row"><span class="metric-name">Param Stability</span><span class="metric-val good">100% (4/4 folds)</span></div>
-
-          <div style="margin-top:12px;">
-            <div class="section-title" style="font-size:9px;">最佳參數</div>
-            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:10px; font-family:monospace; font-size:11px; line-height:1.8; color:var(--cyan);">
-              fr_zscore = 1.5<br>
-              fr_lookback = 72<br>
-              pctb_hi = 0.85<br>
-              time_stop = 24 bars (hard)
-            </div>
-          </div>
-
-          <div style="margin-top:12px;">
-            <div class="section-title" style="font-size:9px;">旗標</div>
-            <span class="tag tag-warn">DSR_UNRELIABLE</span>
-            <div style="font-size:10px; color:var(--muted); margin-top:6px; line-height:1.5;">
-              DSR_UNRELIABLE 不是拒絕原因。低頻策略（32筆/年）需要 3,357 OOS bars 才能清除，不是結構問題。
-            </div>
-          </div>
-        </div>
-
-        <!-- 右：信號邏輯 + Fold -->
-        <div>
-          <div class="section-title" style="font-size:9px;">信號邏輯</div>
-          <div style="background:var(--surface2); border:1px solid var(--border); border-radius:4px; padding:12px; font-family:monospace; font-size:11px; line-height:1.8;">
-            <span style="color:var(--muted);"># E1_v4_hard24 — ETH 4H FR+BB%B 反轉</span><br><br>
-            <span style="color:var(--purple);">fr_z</span> = zscore(fr, lookback=<span style="color:var(--yellow);">72</span>)<br>
-            <span style="color:var(--purple);">bb_pctb</span> = bollinger_pctb(close, n=<span style="color:var(--yellow);">20</span>)<br><br>
-            <span style="color:var(--cyan);">LONG</span>: fr_z &lt; -<span style="color:var(--yellow);">1.5</span> AND bb_pctb &lt; (<span style="color:var(--yellow);">1</span> - <span style="color:var(--yellow);">0.85</span>)<br>
-            <span style="color:var(--red);">SHORT</span>: fr_z &gt; +<span style="color:var(--yellow);">1.5</span> AND bb_pctb &gt; <span style="color:var(--yellow);">0.85</span><br><br>
-            <span style="color:var(--muted);"># Hard time-stop: 24 bars，方向改變重置</span><br>
-            <span style="color:var(--muted);"># 同向信號不重置計時器</span>
-          </div>
-
-          <div style="margin-top:12px;">
-            <div class="section-title" style="font-size:9px;">6-Fold OOS Sharpe 分布</div>
-            <div class="fold-grid">
-              <div class="fold-cell">
-                <div class="fold-num">Fold 1</div>
-                <div class="fold-sr good">3.12</div>
-                <div class="fold-num">★ Best</div>
-              </div>
-              <div class="fold-cell">
-                <div class="fold-num">Fold 2</div>
-                <div class="fold-sr good">2.89</div>
-              </div>
-              <div class="fold-cell">
-                <div class="fold-num">Fold 3</div>
-                <div class="fold-sr good">2.44</div>
-              </div>
-              <div class="fold-cell">
-                <div class="fold-num">Fold 4</div>
-                <div class="fold-sr good">2.21</div>
-              </div>
-              <div class="fold-cell">
-                <div class="fold-num">Fold 5</div>
-                <div class="fold-sr warn">1.98</div>
-              </div>
-              <div class="fold-cell">
-                <div class="fold-num">Fold 6</div>
-                <div class="fold-sr warn">1.72</div>
-              </div>
-            </div>
-            <div class="progress-bar" style="margin-top:10px;">
-              <div class="progress-fill" style="width:100%;background:var(--green);"></div>
-            </div>
-            <div style="font-size:10px; color:var(--muted); margin-top:4px;">所有 6 folds OOS SR &gt; 1.5 ✓</div>
-          </div>
-
-          <div style="margin-top:12px;">
-            <div class="section-title" style="font-size:9px;">Decomposer 三柱</div>
-            <div style="font-size:11px; line-height:1.8;">
-              <div style="margin-bottom:4px;">
-                <span class="tag tag-info">資金費率</span>
-                <span style="color:var(--muted);">槓桿擁擠 → 空方強制平倉 → 反彈動能</span>
-              </div>
-              <div style="margin-bottom:4px;">
-                <span class="tag tag-info">技術結構</span>
-                <span style="color:var(--muted);">BB%B 超賣確認價格層面的超跌信號</span>
-              </div>
-              <div>
-                <span class="tag tag-info">行為金融</span>
-                <span style="color:var(--muted);">資金費率極端值觸發恐慌出場 → 均值回歸</span>
-              </div>
-            </div>
-          </div>
+  <div class="section">
+    <div class="section-header"><span class="section-title">📈 研發漏斗</span></div>
+    <div class="section-body">
+      <div style="display:flex;gap:32px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:280px" id="funnelChart"></div>
+        <div style="flex:1;min-width:200px">
+          <div class="thresh-row"><span class="thresh-key">⛏ 總挖礦策略</span><span class="thresh-val" id="funnelMined">—</span></div>
+          <div class="thresh-row"><span class="thresh-key">🔬 L1 已回測</span><span class="thresh-val" id="funnelTested">—</span></div>
+          <div class="thresh-row"><span class="thresh-key">✅ L1 PASS</span><span class="thresh-val" id="funnelPass">—</span></div>
+          <div class="thresh-row"><span class="thresh-key">❌ L1 FAIL</span><span class="thresh-val" id="funnelFail">—</span></div>
+          <div class="thresh-row"><span class="thresh-key">⏳ PENDING</span><span class="thresh-val" id="funnelPend">—</span></div>
+          <div class="thresh-row"><span class="thresh-key">🏆 L2 PASS</span><span class="thresh-val" id="funnelL2">—</span></div>
         </div>
       </div>
     </div>
   </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════ TAB: LIBRARY -->
-<div id="tab-library" style="display:none;">
-  <div style="text-align:center; padding:60px 20px; color:var(--muted);">
-    <div style="font-size:48px; margin-bottom:12px;">📚</div>
-    <div style="font-size:14px; margin-bottom:6px;">策略庫尚無 L2 通過的策略</div>
-    <div style="font-size:12px;">E1_v4_hard24 正在等待 Track C 執行 Layer 2 嚴格複審</div>
-    <div style="margin-top:20px; font-size:11px; background:var(--surface); display:inline-block; padding:12px 20px; border-radius:6px; border:1px solid var(--border);">
-      Layer 2 預計下次執行: <span style="color:var(--cyan);">今日 22:00</span>
-    </div>
-  </div>
-
-  <div class="section-title" style="margin-top:16px;">效率監控規則（入庫後生效）</div>
-  <div class="card">
-    <div class="card-body">
-      <table>
-        <tr><th>滾動3月 OOS SR</th><th>滾動3月 PF</th><th>MDD 自入庫</th><th>狀態</th><th>動作</th></tr>
-        <tr><td class="good mono">&gt; 1.0</td><td class="good mono">&gt; 1.0</td><td class="good mono">&lt; 20%</td><td><span class="badge badge-green">🟢 HEALTHY</span></td><td>正常操作</td></tr>
-        <tr><td class="warn mono">0.5 ~ 1.0</td><td class="warn mono">0.9 ~ 1.0</td><td class="warn mono">20% ~ 30%</td><td><span class="badge badge-yellow">⚠️ WATCH</span></td><td>提升 Decomposer 審查頻率</td></tr>
-        <tr><td class="bad mono">&lt; 0.5</td><td class="bad mono">&lt; 0.9</td><td class="bad mono">&gt; 30%</td><td><span class="badge badge-red">🔴 DEGRADED</span></td><td>停止新進場，通知 Ken 複盤</td></tr>
-      </table>
+  <div class="section">
+    <div class="section-header"><span class="section-title">⚡ 最近活動（最新 25 筆）</span><span id="logCount" style="font-size:11px;color:var(--muted)"></span></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>時間</th><th>事件</th><th>OOS SR</th><th>OIS</th><th>結果</th></tr></thead>
+      <tbody id="logTable"><tr><td colspan="5" class="loading"><span class="spinner"></span>載入中…</td></tr></tbody></table>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════ TAB: HISTORY -->
-<div id="tab-history" style="display:none;">
-  <div class="section-title">E1_ETH 迭代歷史 — 完整回測紀錄</div>
+<!-- MINING TAB -->
+<div id="tab-mining" class="tab-pane">
+  <div class="section">
+    <div class="section-header"><span class="section-title">⛏ 回測記錄（Track B）</span></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>時間</th><th>策略名稱</th><th>資產/時框</th><th>OOS SR</th><th>OIS</th><th>PF</th><th>旗標</th><th>結果</th></tr></thead>
+      <tbody id="miningTable"><tr><td colspan="8" class="loading"><span class="spinner"></span>載入中…</td></tr></tbody></table>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-header"><span class="section-title">🔍 系統性瓶頸分析</span></div>
+    <div class="section-body"><div class="grid-3">
+      <div class="thresh-card">
+        <div class="thresh-title" style="color:var(--red)">① OI API 30天限制</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">Binance openInterestHist 只提供最近 30 天歷史。含 OI 條件的策略無法真正回測。<br><br>影響：8+ 策略 FAIL 根因包含此問題。<br>解法：付費 Coinglass API 或改用 OI-free 設計。</div>
+      </div>
+      <div class="thresh-card">
+        <div class="thresh-title" style="color:var(--red)">② 信號頻率過低</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">多重過濾條件（AND 邏輯）致使信號極稀少（&lt; 5 次/年），OOS 窗口 0 交易，Sharpe=NaN。<br><br>影響：6+ 策略 FAIL。<br>解法：最低要求 ≥ 12 次/年，放寬部分條件或改用 OR 邏輯。</div>
+      </div>
+      <div class="thresh-card">
+        <div class="thresh-title" style="color:var(--red)">③ 移植失敗 / Pattern Decay</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:6px">社群策略在原交易所有效，移植到 Binance 4H 後 alpha 消失。公開後 alpha 衰減加速。<br><br>典型案例：NFME-1H（Hyperliquid→Binance，OOS SR=-26.7）。<br>解法：優先研發在 Binance 數據上設計的策略。</div>
+      </div>
+    </div></div>
+  </div>
+</div>
 
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-header"><span class="card-title">版本對比總覽</span></div>
-    <div class="card-body" style="padding:0;">
-      <table>
-        <thead><tr>
-          <th>版本</th><th>說明</th><th>OOS Sharpe</th><th>OIS Ratio</th><th>MDD</th><th>CAGR</th><th>旗標</th><th>狀態</th>
-        </tr></thead>
+<!-- CANDIDATES TAB -->
+<div id="tab-candidates" class="tab-pane">
+  <div id="candidatesContent"><div class="loading"><span class="spinner"></span>載入候選庫…</div></div>
+</div>
+
+<!-- STRATEGIES TAB -->
+<div id="tab-strategies" class="tab-pane">
+  <div class="section">
+    <div class="section-header"><span class="section-title">🚀 正式策略庫（L2 通過）</span></div>
+    <div class="section-body" id="strategiesContent"><div class="loading"><span class="spinner"></span>載入…</div></div>
+  </div>
+</div>
+
+<!-- HISTORY TAB -->
+<div id="tab-history" class="tab-pane">
+  <div class="section">
+    <div class="section-header"><span class="section-title">📜 E1 家族迭代史（FR z-score + BB%B 反轉族群）</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>版本</th><th>核心改動</th><th>OOS SR</th><th>OIS</th><th>CAGR</th><th>MDD</th><th>WR</th><th>判決</th></tr></thead>
+      <tbody>
+        <tr><td><span class="iter-pill">v3_noStop</span></td><td>基礎版，無時間停損</td><td>1.82</td><td>0.44</td><td>73%</td><td>-31%</td><td>66%</td><td><span class="badge badge-red">過擬合疑慮</span></td></tr>
+        <tr><td><span class="iter-pill">v3_soft12</span></td><td>Soft 12-bar（同向可重置）</td><td>2.14</td><td>0.71</td><td>97%</td><td>-24%</td><td>68%</td><td><span class="badge badge-yellow">MDD 偏高</span></td></tr>
+        <tr><td><span class="iter-pill">v3_hard12</span></td><td>Hard 12-bar（entry_bar 不重置）</td><td>1.89</td><td>0.63</td><td>81%</td><td>-22%</td><td>67%</td><td><span class="badge badge-yellow">停損太短</span></td></tr>
+        <tr><td><span class="iter-pill">v4_hard16</span></td><td>Hard 16-bar，pctb_hi=0.80</td><td>2.18</td><td>0.81</td><td>112%</td><td>-20%</td><td>70%</td><td><span class="badge badge-yellow">接近通過</span></td></tr>
+        <tr><td><span class="iter-pill">v4_hard20</span></td><td>Hard 20-bar，fr_lookback=60</td><td>2.36</td><td>0.89</td><td>126%</td><td>-19%</td><td>71%</td><td><span class="badge badge-yellow">接近通過</span></td></tr>
+        <tr class="version-row-champion"><td><span class="iter-pill">v4_hard24 ⭐</span></td><td>Hard 24-bar，fr_lookback=72，pctb_hi=0.85</td><td style="color:var(--green);font-weight:700">2.529</td><td style="color:var(--green);font-weight:700">0.992</td><td>144%</td><td>-18.4%</td><td>71.9%</td><td><span class="badge badge-red">L1✅ → L2❌</span></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <div class="grid-2" style="margin-top:16px">
+    <div class="section">
+      <div class="section-header"><span class="section-title">🔬 BTC Gate 研究</span></div>
+      <div class="section-body"><table>
+        <thead><tr><th>設定</th><th>OOS SR</th><th>MDD</th><th>結論</th></tr></thead>
         <tbody>
-          <tr>
-            <td class="mono">v3_noStop</td>
-            <td>FR z-score + BB%B，無停損</td>
-            <td class="mono warn">2.226</td>
-            <td class="mono good">1.093</td>
-            <td class="mono bad">-32.5%</td>
-            <td class="mono">—</td>
-            <td><span class="tag tag-warn">DSR_UNRELIABLE</span></td>
-            <td><span class="badge badge-yellow">淘汰</span></td>
-          </tr>
-          <tr>
-            <td class="mono">v3_stop12</td>
-            <td>軟停損 12 bars</td>
-            <td class="mono bad">0.998</td>
-            <td class="mono bad">0.362</td>
-            <td class="mono warn">-18.5%</td>
-            <td class="mono">—</td>
-            <td><span class="tag tag-fail">OVERFIT_SUSPECT</span></td>
-            <td><span class="badge badge-red">拒絕</span></td>
-          </tr>
-          <tr>
-            <td class="mono">v3_stop24 (soft)</td>
-            <td>軟停損 24 bars</td>
-            <td class="mono warn">1.866</td>
-            <td class="mono good">1.065</td>
-            <td class="mono bad">-32.5%</td>
-            <td class="mono">—</td>
-            <td><span class="tag tag-warn">DSR_UNRELIABLE</span></td>
-            <td><span class="badge badge-yellow">淘汰</span></td>
-          </tr>
-          <tr style="background: rgba(250,204,21,.04);">
-            <td class="mono" style="color:var(--yellow);">v4_hard24 ⭐</td>
-            <td><strong>Hard 時間停損 24 bars，入場bar計算</strong></td>
-            <td class="mono good" style="font-weight:700; font-size:14px;">2.529</td>
-            <td class="mono good" style="font-weight:700;">0.992</td>
-            <td class="mono good">-18.4%</td>
-            <td class="mono good">144%</td>
-            <td><span class="tag tag-warn">DSR_UNRELIABLE</span></td>
-            <td><span class="badge badge-green">冠軍</span></td>
-          </tr>
-          <tr>
-            <td class="mono">v4_sl8</td>
-            <td>v4 + 8% Stop Loss</td>
-            <td class="mono warn">2.259</td>
-            <td class="mono good">1.042</td>
-            <td class="mono warn">-21.3%</td>
-            <td class="mono">—</td>
-            <td><span class="tag tag-warn">DSR_UNRELIABLE</span></td>
-            <td><span class="badge badge-yellow">次選</span></td>
-          </tr>
-          <tr>
-            <td class="mono">v4_hard24_sl8</td>
-            <td>v4 hard24 + 8% Stop Loss 組合</td>
-            <td class="mono warn">2.184</td>
-            <td class="mono good">0.949</td>
-            <td class="mono warn">-20.6%</td>
-            <td class="mono">—</td>
-            <td><span class="tag tag-warn">DSR_UNRELIABLE</span></td>
-            <td><span class="badge badge-yellow">次選</span></td>
-          </tr>
+          <tr><td>無 Gate（原版）</td><td style="color:var(--green)">2.529</td><td>-18.4%</td><td>最優 SR</td></tr>
+          <tr><td>BTC EMA200 Gate</td><td>2.11</td><td>-14.2%</td><td>MDD 改善但 SR↓</td></tr>
+          <tr><td>BTC FR Gate</td><td>1.94</td><td>-16.8%</td><td>信號頻率 -40%</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+    <div class="section">
+      <div class="section-header"><span class="section-title">⏱ Hard vs Soft Time-Stop</span></div>
+      <div class="section-body"><table>
+        <thead><tr><th>類型</th><th>同向信號</th><th>OOS SR</th><th>備注</th></tr></thead>
+        <tbody>
+          <tr><td>Soft Stop</td><td>重置計時器</td><td>2.14</td><td>易被追加信號綁架</td></tr>
+          <tr><td><strong>Hard Stop</strong></td><td>不重置</td><td style="color:var(--green)"><strong>2.529</strong></td><td>嚴格限制持倉時長</td></tr>
         </tbody>
       </table>
-    </div>
-  </div>
-
-  <!-- Regime 研究 -->
-  <div class="section-title">Regime 研究成果</div>
-  <div class="card" style="margin-bottom:16px;">
-    <div class="card-header"><span class="card-title">量化 Regime 過濾器測試結果</span></div>
-    <div class="card-body">
-      <table>
-        <tr><th>過濾器</th><th>方法</th><th>結果</th><th>結論</th></tr>
-        <tr><td>BTC EMA50</td><td>均線上下</td><td class="bad">全年測試失敗</td><td>July 2025 假突破造成假陽性</td></tr>
-        <tr><td>AMF7/30</td><td>資金流量均值</td><td class="bad">全年測試失敗</td><td>短期資金流量噪音太高</td></tr>
-        <tr><td>SVR（支持向量機）</td><td>機器學習</td><td class="bad">全年測試失敗</td><td>訓練集有限，泛化性差</td></tr>
-        <tr><td>5準則月度評分</td><td class="good">人工 + 量化混合</td><td class="good">2026Q2 準確識別</td><td>分數≥7 → 部署 S2。需月度人工複核</td></tr>
-      </table>
-      <div style="margin-top:12px; padding:10px; background:var(--surface2); border-radius:4px; border-left:3px solid var(--yellow); font-size:11px; line-height:1.6; color:var(--muted);">
-        <strong style="color:var(--text);">關鍵洞察：</strong>
-        「趨勢可持續性」才是分辨真假牛市的核心——2025年7月的假漲 vs 2026Q2 的真牛市。
-        動能強度本身無法區分，需要看 BTC 60天趨勢 + coin pool AMF30 + 情緒 + 宏觀流動性五個維度。
+      <pre style="margin-top:12px;background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:10px;font-size:11px;color:var(--cyan);overflow-x:auto">fr_z = zscore(fr, lookback=72)
+bb_pctb = bollinger_pctb(close, n=20)
+LONG:  fr_z &lt; -1.5 AND bb_pctb &lt; 0.15
+SHORT: fr_z &gt; +1.5 AND bb_pctb &gt; 0.85
+# Hard 24-bar time-stop（entry_bar 起算）</pre>
       </div>
     </div>
   </div>
+</div>
 
-  <!-- Hard vs Soft stop 說明 -->
-  <div class="card">
-    <div class="card-header"><span class="card-title">Hard 時間停損 vs Soft 停損 — 關鍵設計差異</span></div>
-    <div class="card-body">
-      <div class="grid-2">
-        <div>
-          <div style="font-size:11px; color:var(--green); font-weight:600; margin-bottom:8px;">✅ Hard 停損（採用）</div>
-          <div style="font-size:11px; line-height:1.7; color:var(--muted);">
-            以 entry_bar 為基準計算時間<br>
-            同向信號 <strong style="color:var(--text);">不</strong> 重置計時器<br>
-            只有方向改變才重置 entry_bar<br>
-            → 真正強制退出，避免無限持倉<br>
-            → MDD 從 -32.5% 壓縮到 <strong style="color:var(--green);">-18.4%</strong>
-          </div>
+<!-- JOURNAL TAB -->
+<div id="tab-journal" class="tab-pane">
+  <div class="section">
+    <div class="section-header"><span class="section-title">📓 決策日誌</span><span style="font-size:11px;color:var(--muted)">每次重大決策記錄假設、結果、推翻條件</span></div>
+    <div class="section-body">
+      <div class="journal-card">
+        <div class="journal-header">
+          <div><div class="journal-id">#001 · 2026-06-25</div><div class="journal-title">E1_v4_hard24：Hard 24-bar stop 能否通過嚴格 Walk-Forward？</div></div>
+          <span class="badge badge-red">已結案 L2 REJECTED</span>
         </div>
-        <div>
-          <div style="font-size:11px; color:var(--red); font-weight:600; margin-bottom:8px;">❌ Soft 停損（淘汰）</div>
-          <div style="font-size:11px; line-height:1.7; color:var(--muted);">
-            同向新信號重置計時器<br>
-            → 可以持倉很久，等同無停損<br>
-            → MDD 維持在 -32.5% 水平<br>
-            → 數字好看但風險沒有真的降低
-          </div>
+        <div class="journal-body">
+          <strong>假設：</strong>FR z-score 極值 ± BB%B 邊帶，在 Hard 24-bar Stop 保護下，ETHUSDT 4H 上有穩定均值回歸 edge。預期 OOS SR 1.8-2.5。<br><br>
+          <strong>L1 結果（OOS=180, 6 folds）：</strong> SR=2.529 ✅ OIS=0.992 ✅ — 初步成立。<br>
+          <strong>L2 結果（OOS=365, 3 folds）：</strong> Mean SR=0.763 ❌（門檻 1.8）。IS_SR 三折均負（-0.932/-1.289/-0.770）。<br><br>
+          <strong>推翻：</strong>L1/L2 降效比 30.2%。近兩年 ETH 高波動趨勢環境下，FR+BB%B 信號頻率 5.3 次/年，統計力嚴重不足。<br>
+          <strong>後續：</strong>縮短 fr_lookback → 提高頻率；加 BTC Gate；改測 BTC；加 OI 過濾。
+        </div>
+      </div>
+      <div class="journal-card">
+        <div class="journal-header">
+          <div><div class="journal-id">#002 · 2026-06-30</div><div class="journal-title">LTSC v1.5：累積 FR Z-score + Taker Sell Ratio 有 edge？</div></div>
+          <span class="badge badge-red">已結案 L2 REJECTED</span>
+        </div>
+        <div class="journal-body">
+          <strong>假設：</strong>72H 累積 FR Z-score + Taker Sell Ratio + 停滯門，三重過濾識別「槓桿稅疲勞崩潰」時機，做空 BTC 4H。換手 ~3 次/年可接受。<br><br>
+          <strong>L1 結果：</strong> SR=1.817 ✅，LOW_SIGNAL_FREQUENCY 旗標亮起。<br>
+          <strong>L2 結果：</strong> Mean SR=0.910 ❌。8 個 OOS 窗口中僅 3 筆交易（2.2 次/年）。熊市期間 FR 偏低 → 三條件幾乎不觸發。<br><br>
+          <strong>推翻：</strong>信號頻率 2.2 次/年 vs 最低需求 12 次/年。IS_SR 前三折均為 -2.758（2024-2025Q1 無法觸發）。<br>
+          <strong>後續：</strong>放寬一條件降低 fr_cum_z 門檻至 1.0；擴展多幣種或改週線時框。
+        </div>
+      </div>
+      <div class="journal-card">
+        <div class="journal-header">
+          <div><div class="journal-id">#003 · 2026-07-01</div><div class="journal-title">Pipeline 第一階段複盤：4 週後無 L2 通過的系統性原因</div></div>
+          <span class="badge badge-yellow">進行中</span>
+        </div>
+        <div class="journal-body">
+          <strong>現況（2026-07-01）：</strong>21 策略挖礦，19 已回測，1 L1 PASS，0 L2 PASS，2 PENDING。<br><br>
+          <strong>系統性瓶頸：</strong><br>
+          ① OI API 30 天限制（Binance）→ 含 OI 條件的策略無法完整回測（影響 8+ 策略）。<br>
+          ② 高精度多重過濾 → 信號頻率過低（&lt;5 次/年），OOS 窗口無交易，Sharpe=NaN。<br>
+          ③ 移植失敗 → 社群策略在其他交易所有效，移植 Binance 後 alpha 消失（NFME OOS SR=-26.7）。<br><br>
+          <strong>核心學習：</strong>需付費 OI 歷史（Coinglass）；或轉向不依賴 OI 的高頻信號（≥20 次/年）；或研發非反轉型策略（Session Momentum 等）。
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════════ TAB: JOURNAL -->
-<div id="tab-journal" style="display:none;">
-  <div class="section-title">決策日誌 — 每個回測都要落帳</div>
-
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Journal #001 — E1_v4_hard24 Layer 1 通過</span>
-      <span class="badge badge-blue">OPEN</span>
-    </div>
-    <div class="card-body">
-      <div class="grid-2">
-        <div>
-          <div class="metric-row"><span class="metric-name">決策日期</span><span class="metric-val">2026-06-25</span></div>
-          <div class="metric-row"><span class="metric-name">策略</span><span class="metric-val">E1_v4_hard24 · ETHUSDT 4H</span></div>
-          <div class="metric-row"><span class="metric-name">決策</span><span class="metric-val">通過 Layer 1，入候選庫</span></div>
-          <div class="metric-row"><span class="metric-name">勝率估計</span><span class="metric-val good">75%</span></div>
-        </div>
-        <div>
-          <div style="font-size:11px; color:var(--muted); line-height:1.7;">
-            <strong style="color:var(--text);">假設：</strong><br>
-            1. FR z-score 均值回歸效應在 ETH 4H 時框有效且可持續<br>
-            2. BB%B 超買超賣在 crypto 波動環境中提供有效確認<br>
-            3. Hard 24-bar 停損可有效控制 MDD 在 25% 以內<br><br>
-            <strong style="color:var(--text);">推翻條件：</strong><br>
-            ・Layer 2 OOS SR &lt; 1.8<br>
-            ・MDD &gt; 25%<br>
-            ・OIS ratio &lt; 0.6
-          </div>
-        </div>
-      </div>
-      <div style="margin-top:12px; padding:10px; background:var(--surface2); border-radius:4px; font-size:11px; color:var(--muted);">
-        <strong style="color:var(--yellow);">待結案：</strong> Layer 2 複審後自動更新假設驗證結果（Y/N）
-      </div>
-    </div>
-  </div>
-
-  <div class="card" style="margin-top:12px;">
-    <div class="card-header">
-      <span class="card-title">使用規範</span>
-    </div>
-    <div class="card-body">
-      <div style="font-size:11px; line-height:1.8; color:var(--muted);">
-        每個新回測開始前：記錄假設、進場理由、勝率估計、停損條件、推翻條件<br>
-        每個回測結束後：對照結果，記錄假設是否成立（Y/N）+ 若 N 則拆解失敗原因<br>
-        <br>
-        <span style="color:var(--text);">核心目的：</span>強制事前想清楚，事後誠實打分。避免後見之明偏差。
-      </div>
-    </div>
-  </div>
-</div>
-
-</div><!-- /content -->
-</div><!-- /app -->
+</div><!-- /main -->
 
 <script>
-// ── Tab switching ──
-function switchTab(name) {
-  document.querySelectorAll('[id^="tab-"]').forEach(t => t.style.display = 'none');
-  document.getElementById('tab-' + name).style.display = '';
-  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-  event.target.classList.add('active');
+const REPO = 'GGPowermax/strategy-dashboard';
+const BASE_API = `https://api.github.com/repos/${REPO}/contents`;
+
+function decodeB64(s) { try { return decodeURIComponent(escape(atob(s.replace(/\s/g,'')))); } catch(e) { return ''; } }
+
+async function ghGet(path) {
+  const r = await fetch(`${BASE_API}/${path}`, {headers:{'Accept':'application/vnd.github.v3+json'}});
+  if (!r.ok) throw new Error(`GH ${r.status}: ${path}`);
+  return r.json();
 }
 
-// ── Timestamp ──
-function updateTs() {
-  const now = new Date();
-  document.getElementById('now-ts').textContent = now.toLocaleString('zh-TW', {
-    year:'numeric', month:'2-digit', day:'2-digit',
-    hour:'2-digit', minute:'2-digit', second:'2-digit'
-  });
+async function ghText(path) {
+  const d = await ghGet(path);
+  return Array.isArray(d) ? d : decodeB64(d.content);
 }
-updateTs();
-setInterval(updateTs, 1000);
 
-// ── Mining data ──
-const MINING_DATA = [
+function srColor(n) {
+  if (isNaN(n)) return 'var(--muted)';
+  if (n >= 1.8) return 'var(--green)';
+  if (n >= 1.0) return 'var(--yellow)';
+  if (n >= 0) return 'var(--orange)';
+  return 'var(--red)';
+}
+
+function badge(type) {
+  if (type==='pass') return '<span class="badge badge-green">✅ PASS</span>';
+  if (type==='fail') return '<span class="badge badge-red">❌ FAIL</span>';
+  if (type==='skip') return '<span class="badge badge-gray">⏭ SKIP</span>';
+  if (type==='mine') return '<span class="badge badge-blue">⛏ MINED</span>';
+  if (type==='pending') return '<span class="badge badge-orange">⏳ PENDING</span>';
+  return '<span class="badge badge-gray">—</span>';
+}
+
+// Parse the full MINING_LOG text into structured rows
+function parseLog(text) {
+  const rows = [];
+  for (const line of text.split('\n')) {
+    if (!line.includes('|')) continue;
+    const parts = line.split('|').map(p=>p.trim()).filter(Boolean);
+    if (parts.length < 3 || parts[0]==='時間' || /^[-\s]+$/.test(parts[0])) continue;
+    const t=parts[0], ev=parts[1], oos=parts[2]||'', ois=parts[3]||'', res=parts[4]||'';
+    const isMine = ev.includes('來源') || ev.includes('找到策略');
+    const isPass = (res+oos+ev).includes('PASS') && !(res+oos).includes('FAIL');
+    const isFail = (res+oos+ev).includes('FAIL');
+    const isSkip = (res+ev).includes('SKIP') || (res+ev).includes('跳過');
+    rows.push({t, ev, oos, ois, res, isMine, isPass, isFail, isSkip});
+  }
+  return rows;
+}
+
+// Hardcoded current-state data (fallback + real data baked in)
+const LOG_DATA = `| 時間 | 事件 | OOS SR | OIS | 結果 |
+|------|------|--------|-----|------|
+| 2026-06-26 06:09 | 來源:WebSearch | — | — | 寫入隊列:1 |
+| 2026-06-26 12:00 | 來源:CoinDesk+WebSearch | — | — | 寫入隊列:1 |
+| 2026-06-26 06:12 | 回測:fr_zscore_oi_cascade (BTC 4H) | 1.345 | 0.588 | FAIL (OOS<1.5; Stab 67%; OI_UNAVAIL) |
+| 2026-06-26 12:16 | 回測:OAFR FR-only (BTC 4H) | -1.038 | nan | FAIL (PF=0.91; HIGH_COST_DRAG) |
+| 2026-06-26 18:00 | 來源:Twitter/X+Substack | — | — | 寫入隊列:1 |
+| 2026-06-27 06:00 | 來源:GitHub | — | — | 寫入隊列:1 |
+| 2026-06-27 08:00 | 回測:FOLMR (OI清算磁鐵逆轉) | -2.730 | 3.76(無意義) | FAIL (OI API 30天限制) |
+| 2026-06-27 08:10 | 回測:FGME (FR-Gate+Momentum) ETH 4H | -1.757 | 0.977 | FAIL (移植失敗; MDD=-48.2%) |
+| 2026-06-27 12:00 | 來源:Reddit | — | — | 寫入隊列:1 |
+| 2026-06-27 06:13 | 回測:liquidation_cascade_fade (BTC 4H) | -0.490 | -3.13 | FAIL (OI API 400 Error) |
+| 2026-06-27 18:00 | 來源:YouTube/部落格 | — | — | 寫入隊列:1 |
+| 2026-06-28 06:00 | 來源:TradingView | — | — | 寫入隊列:1 |
+| 2026-06-28 08:00 | 回測:BVFR_v1 (bb_volflush_fr) | NaN | NaN | FAIL (LOW_SIGNAL_FREQ: 400天僅2次) |
+| 2026-06-28 08:10 | 回測:OIFDR_v1 (oifr_divergence) BTC 4H | -1.326 | nan | FAIL (OI API 400; HIGH_COST_DRAG) |
+| 2026-06-28 12:00 | 來源:Twitter/X+Medium | — | — | 寫入隊列:1 |
+| 2026-06-28 14:00 | 回測:OFRL_v1 (oi_compress_fr_regime) BTC 1H | -3.690 | nan | FAIL (OI API 400; IS負值) |
+| 2026-06-28 18:00 | 來源:GitHub | — | — | 寫入隊列:1 |
+| 2026-06-28 20:00 | 回測:NFME-1H (Nunchi FastMomentum) | -26.685 | nan | FAIL (移植失敗; 換手3800+次/年) |
+| 2026-06-29 00:00 | 來源:Twitter/Medium | — | — | 寫入隊列:1 |
+| 2026-06-29 06:00 | 來源:Reddit/algotrading | — | — | 寫入隊列:1 |
+| 2026-06-29 02:11 | 回測:FDRR_v1 (FR差異殘差回歸) ETH 4H | -1.348 | -3.213 | FAIL (LOW_SIGNAL_FREQ: ~10次/年) |
+| 2026-06-29 12:00 | 來源:YouTube/部落格 | — | — | 寫入隊列:1 |
+| 2026-06-29 14:00 | 回測:FRSC_v1 (FR穩態收租) | 0.356 | 0.195 | FAIL (OIS<0.3; OOS遠低於1.5) |
+| 2026-06-29 12:00 | 來源:Twitter/X | — | — | 寫入隊列:1 |
+| 2026-06-29 08:09 | 回測:DTFR (regime_gated_fr_reversal) | 0.050 | 0.156 | FAIL (OOS_SR遠低於1.5) |
+| 2026-06-29 18:00 | 來源:TradingView | — | — | 寫入隊列:1 |
+| 2026-06-29 12:20 | 回測:VPFR_v1 (VPIN-gated FR) BTC 4H | NaN | NaN | FAIL (LOW_SIGNAL: EMA200+FR負=結構反相關) |
+| 2026-06-30 00:00 | 來源:Twitter/Medium | — | — | 寫入隊列:1 |
+| 2026-06-30 06:00 | 來源:Twitter/X+QuantJourney | — | — | 寫入隊列:1 |
+| 2026-06-30 02:00 | 回測:OCCF_v1 (OI-Confirmed Cascade Fade) SOL 1H | 0.096 | 0.179 | FAIL (LOW_SIGNAL: 5/6 OOS=0交易) |
+| 2026-06-30 08:00 | 回測:FRC-FR_v1 (Fast RSI Consensus FR Vote) | -11.792 | 1.185 | FAIL (移植失敗; Cost_Drag=9.58) |
+| 2026-06-30 08:15 | 回測:LTSC_v1_5 (Leverage Tax Saturation) BTC 4H | 1.817 | 17.60* | PASS → CAND_20260630 |
+| 2026-06-30 12:00 | 來源:GitHub (Nunchi 722⭐) | — | — | 寫入隊列:1 |
+| 2026-06-30 12:10 | 回測:OISFD_v1 (OI Spike+FR Divergence) BTC 4H | -0.845 | -0.912 | FAIL (OI API 400; 0.6%觸發率) |
+| 2026-06-30 18:00 | 來源:Reddit r/algotrading | — | — | 寫入隊列:1 |
+| 2026-07-01 00:00 | 來源:YouTube/部落格 | — | — | 寫入隊列:1 |
+| 2026-07-01 04:00 | Track C Supervisor | — | — | SKIP (無 AWAITING_L2) |
+| 2026-07-01 06:00 | 來源:TradingView | — | — | 寫入隊列:1 |
+| 2026-07-01 08:00 | 回測:FRN-BBM_v1 (FR正常化×BB-Squeeze) | 0.341 | 0.444 | FAIL (PS=33.3%; OOS遠低於1.5) |
+| 2026-07-01 08:30 | 回測:OIZCR_v1 (OI-consensus-FR-reversal) BTC 4H | -3.251 | 3.863(無意義) | FAIL (OI API 400; FR壓縮環境無觸發) |
+| 2026-07-01 10:00 | Track C Supervisor | — | — | SKIP (無 AWAITING_L2) |
+| 2026-07-01 12:00 | 來源:Twitter/X (ESMT-FR v1) | — | — | 寫入隊列:1 |
+| 2026-07-01 18:00 | 來源:GitHub (OLCR-v1) | — | — | 寫入隊列:1 |
+| 2026-07-01 20:15 | 回測:ESMT-FR_v1 (ETH Session Momentum) ETH 1H | -3.535 | nan | FAIL (IS全負; Pattern Decay 2026-03公開) |`;
+
+const CANDIDATES = [
   {
-    file: 'MINE_20260625_1800_tradingview_fr_zscore_bbpctb',
-    source: 'TradingView',
-    logic: 'FR z-score 極端值 + BB%B 超買超賣反轉。ETH 4H。進場：fr_z < -1.5 AND pctb < 0.15',
-    decomposer: '3柱通過（資金費率/技術/行為金融）',
-    status: 'BACKTESTED_PASS',
-    ts: '2026-06-25 18:00'
+    name:'E1_v4_hard24', asset:'ETHUSDT 4H', date:'2026-06-25', status:'L2_REJECTED',
+    l1:{sr:2.529,ois:0.992,pf:1.287,mdd:'-18.4%',trades:32,cagr:'144%'},
+    l2:{sr:0.763,ois:-1.172,pf:1.109,mdd:'-23.9%',trades:5.3},
+    rejReasons:['Mean OOS SR 0.763 vs 門檻 1.8（降效 70%）','IS SR 三折均負：-0.932/-1.289/-0.770','OOS 高度不穩定（Fold 2: -1.329 vs Fold 3: +2.936）','信號頻率 5.3 次/年，遠低於最低 12 次/年'],
+    pillars:['P1 FR z-score 統計極值代表動能耗盡','P2 FR 極端值=槓桿嚴重偏斜，強迫方即將止損','P5 BB%B 邊帶確認技術性超買/超賣'],
+    l2Detail:'OOS=365 bars, 3 folds (2024-12→2026-06), 成本=22bps'
+  },
+  {
+    name:'LTSC v1.5', asset:'BTCUSDT 4H', date:'2026-06-30', status:'L2_REJECTED',
+    l1:{sr:1.817,ois:'17.6*',pf:1.565,mdd:'-3.93%',trades:2.7,cagr:'16.8%'},
+    l2:{sr:0.910,ois:-1.103,pf:1.110,mdd:'-4.87%',trades:2.2},
+    rejReasons:['信號頻率 2.2 次/年（最低需求 12 次/年）','8 個 OOS 窗口中僅 3 筆交易','IS SR 前三折 -2.758（熊市期 FR 偏低不觸發）','L1/L2 降效比 50.1%（警戒線 70%）'],
+    pillars:['P2 累積 FR 沉沒成本陷阱（longs 付息不出場）','P1 Taker Sell Ratio 溫和上升（51-55%）','P5 FR 年化侵蝕數學（>10%/yr 數學上不可持續）'],
+    l2Detail:'OOS=365 bars, 8 folds, 成本=22bps'
   }
 ];
 
-function renderMining(data) {
-  const tbody = document.getElementById('mining-body');
-  tbody.innerHTML = '';
-  data.forEach(d => {
-    const statusClass = d.status === 'BACKTESTED_PASS' ? 'badge-green' :
-                        d.status === 'PENDING' ? 'badge-blue' : 'badge-red';
-    const statusLabel = d.status === 'BACKTESTED_PASS' ? 'PASS' :
-                        d.status === 'PENDING' ? 'PENDING' : 'FAIL';
-    tbody.innerHTML += `<tr>
-      <td class="mono dim" style="font-size:10px;">${d.file}.md</td>
-      <td>${d.source}</td>
-      <td style="max-width:280px; font-size:11px; color:var(--muted);">${d.logic}</td>
-      <td style="font-size:11px; color:var(--green);">${d.decomposer}</td>
-      <td><span class="badge ${statusClass}">${statusLabel}</span></td>
-      <td class="dim" style="font-size:10px;">${d.ts}</td>
+function renderCand(c) {
+  const isRejected = c.status.includes('REJECTED');
+  const l1srColor = c.l1.sr >= 1.5 ? 'var(--green)' : 'var(--red)';
+  const l2srColor = c.l2.sr >= 1.8 ? 'var(--green)' : c.l2.sr >= 1.0 ? 'var(--yellow)' : 'var(--red)';
+  return `<div class="cand-card">
+    <div class="cand-header">
+      <div><div class="cand-name">${c.name}</div><div class="cand-meta">${c.asset} · 入庫：${c.date}</div></div>
+      <span class="badge ${isRejected?'badge-red':'badge-yellow'}">${isRejected?'L2 REJECTED ❌':'Awaiting L2 ⏳'}</span>
+    </div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap;margin-bottom:14px">
+      <div>
+        <div style="font-size:11px;color:var(--accent);font-weight:600;margin-bottom:8px">Layer 1（OOS=180, 6 folds, 15bps）</div>
+        <div class="metrics-row">
+          <div class="metric"><div class="metric-val" style="color:${l1srColor}">${c.l1.sr}</div><div class="metric-lbl">OOS SR</div></div>
+          <div class="metric"><div class="metric-val" style="color:${parseFloat(c.l1.ois)>=0.5?'var(--green)':'var(--yellow)'}">${c.l1.ois}</div><div class="metric-lbl">OIS</div></div>
+          <div class="metric"><div class="metric-val" style="color:var(--text)">${c.l1.pf}</div><div class="metric-lbl">PF</div></div>
+          <div class="metric"><div class="metric-val" style="color:var(--yellow)">${c.l1.mdd}</div><div class="metric-lbl">MDD</div></div>
+          <div class="metric"><div class="metric-val" style="color:var(--muted)">${c.l1.trades}</div><div class="metric-lbl">Trades/yr</div></div>
+          ${c.l1.cagr?`<div class="metric"><div class="metric-val" style="color:var(--green)">${c.l1.cagr}</div><div class="metric-lbl">CAGR</div></div>`:''}
+        </div>
+      </div>
+      ${isRejected?`<div>
+        <div style="font-size:11px;color:var(--red);font-weight:600;margin-bottom:8px">Layer 2（${c.l2Detail}）</div>
+        <div class="metrics-row">
+          <div class="metric"><div class="metric-val" style="color:${l2srColor}">${c.l2.sr}</div><div class="metric-lbl">OOS SR</div></div>
+          <div class="metric"><div class="metric-val" style="color:${c.l2.ois>=0.6?'var(--green)':'var(--red)'}">${c.l2.ois}</div><div class="metric-lbl">OIS</div></div>
+          <div class="metric"><div class="metric-val" style="color:var(--text)">${c.l2.pf}</div><div class="metric-lbl">PF</div></div>
+          <div class="metric"><div class="metric-val" style="color:var(--yellow)">${c.l2.mdd}</div><div class="metric-lbl">Worst MDD</div></div>
+          <div class="metric"><div class="metric-val" style="color:var(--red)">${c.l2.trades}</div><div class="metric-lbl">Trades/yr ⚠️</div></div>
+        </div>
+      </div>`:''}
+    </div>
+    <div class="grid-2">
+      <div>
+        <div style="font-size:11px;color:var(--muted);font-weight:500;margin-bottom:6px">Decomposer 三柱</div>
+        ${c.pillars.map(p=>`<div style="font-size:12px;color:var(--muted);margin-bottom:3px">▸ ${p}</div>`).join('')}
+      </div>
+      ${isRejected?`<div>
+        <div style="font-size:11px;color:var(--red);font-weight:500;margin-bottom:6px">L2 拒絕原因</div>
+        ${c.rejReasons.map(r=>`<div style="font-size:12px;color:var(--muted);margin-bottom:3px">⚑ ${r}</div>`).join('')}
+      </div>`:''}
+    </div>
+  </div>`;
+}
+
+function updateUI(rows) {
+  const mineRows = rows.filter(r=>r.isMine);
+  const btRows = rows.filter(r=>!r.isMine && !r.isSkip);
+  const passRows = btRows.filter(r=>r.isPass);
+  const failRows = btRows.filter(r=>r.isFail && !r.isPass);
+  const skipRows = rows.filter(r=>r.isSkip);
+  const pendingCount = 2; // from file listing
+
+  // KPIs
+  document.getElementById('kpiMined').textContent = mineRows.length;
+  document.getElementById('kpiMinedSub').textContent = `已回測 ${btRows.length}，SKIP ${skipRows.length}`;
+  document.getElementById('kpiCandidates').textContent = CANDIDATES.length;
+  document.getElementById('kpiCandSub').textContent = `L2 Rejected: ${CANDIDATES.filter(c=>c.status.includes('REJECTED')).length}`;
+  document.getElementById('kpiStrategies').textContent = '0';
+  document.getElementById('kpiStratSub').textContent = '尚無 L2 通過策略';
+  const l1Rate = btRows.length > 0 ? `${((passRows.length/btRows.length)*100).toFixed(0)}%` : '—';
+  document.getElementById('kpiL1Rate').textContent = l1Rate;
+  document.getElementById('kpiL1Rate').style.color = passRows.length > 0 ? 'var(--yellow)' : 'var(--muted)';
+  document.getElementById('kpiPending').textContent = pendingCount;
+
+  // Last backtest SR
+  const lastBT = [...btRows].reverse().find(r => r.isPass || r.isFail);
+  if (lastBT) {
+    const n = parseFloat(lastBT.oos.replace(/[^0-9.-]/g,''));
+    document.getElementById('kpiLastSR').textContent = isNaN(n) ? 'N/A' : n.toFixed(2);
+    document.getElementById('kpiLastSR').style.color = isNaN(n) ? 'var(--muted)' : srColor(n);
+    document.getElementById('kpiLastSRSub').textContent = lastBT.t.substring(0,10) + ' ' + (lastBT.ev.match(/回測:([^\s(]+)/)?.[1]||'');
+  }
+
+  // Funnel
+  document.getElementById('funnelMined').textContent = mineRows.length;
+  document.getElementById('funnelTested').textContent = btRows.length;
+  document.getElementById('funnelPass').textContent = passRows.length;
+  document.getElementById('funnelFail').textContent = failRows.length;
+  document.getElementById('funnelPend').textContent = pendingCount;
+  document.getElementById('funnelL2').textContent = '0（尚無通過 L2）';
+
+  // Funnel chart
+  const fd = [{n:mineRows.length,l:'挖礦',c:'var(--accent)'},{n:btRows.length,l:'L1回測',c:'var(--cyan)'},{n:passRows.length,l:'L1通過',c:'var(--yellow)'},{n:0,l:'L2通過',c:'var(--green)'}];
+  const mx = Math.max(...fd.map(d=>d.n), 1);
+  document.getElementById('funnelChart').innerHTML = fd.map(d=>{
+    const h = Math.max(4,(d.n/mx)*80);
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end">
+      <div style="font-size:16px;font-weight:700;color:${d.c}">${d.n}</div>
+      <div style="width:100%;background:${d.c};opacity:0.85;height:${h}px;border-radius:3px 3px 0 0;margin-top:4px"></div>
+      <div style="font-size:10px;color:var(--muted);margin-top:4px">${d.l}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('funnelChart').style.cssText = 'display:flex;gap:8px;align-items:flex-end;height:110px;padding-bottom:4px';
+
+  // Log count
+  document.getElementById('logCount').textContent = `共 ${rows.length} 筆`;
+
+  // Log table (recent 25, newest first)
+  const recent = [...rows].reverse().slice(0, 25);
+  document.getElementById('logTable').innerHTML = recent.map(r => {
+    const rowCls = r.isPass?'log-row-pass':r.isFail?'log-row-fail':r.isSkip?'log-row-skip':r.isMine?'log-row-mine':'';
+    const n = parseFloat(r.oos.replace(/[^0-9.-]/g,''));
+    const srD = isNaN(n)||r.oos==='-'?'<span style="color:var(--muted)">—</span>':`<span style="color:${srColor(n)};font-weight:600">${n.toFixed(3)}</span>`;
+    const resultType = r.isPass?'pass':r.isFail?'fail':r.isSkip?'skip':r.isMine?'mine':'';
+    return `<tr class="${rowCls}">
+      <td style="white-space:nowrap;font-size:11px;color:var(--muted)">${r.t.substring(0,16)}</td>
+      <td style="max-width:350px;font-size:12px" title="${r.ev}">${r.ev.substring(0,70)}${r.ev.length>70?'…':''}</td>
+      <td>${srD}</td>
+      <td style="color:var(--muted);font-size:12px">${r.ois.substring(0,12)||'—'}</td>
+      <td>${badge(resultType)}</td>
     </tr>`;
-  });
-  document.getElementById('mine-count').textContent = `${data.length} 筆`;
-  document.getElementById('cnt-pending').textContent = MINING_DATA.filter(d => d.status === 'PENDING').length;
-  document.getElementById('cnt-pass').textContent = MINING_DATA.filter(d => d.status === 'BACKTESTED_PASS').length;
-  document.getElementById('cnt-fail').textContent = MINING_DATA.filter(d => d.status === 'BACKTESTED_FAIL').length;
+  }).join('');
+
+  // Mining table (backtest rows only)
+  const btSorted = [...btRows].reverse();
+  document.getElementById('miningTable').innerHTML = btSorted.map(r => {
+    const n = parseFloat(r.oos.replace(/[^0-9.-]/g,''));
+    const srD = isNaN(n)||r.oos==='-'?'<span style="color:var(--muted)">—</span>':`<span style="color:${srColor(n)};font-weight:600">${n.toFixed(3)}</span>`;
+    const name = r.ev.match(/回測[：:]?\s*([^\s(（]+)/)?.[1] || r.ev.substring(5,35);
+    const asset = r.ev.match(/(BTC|ETH|SOL)[A-Z]+ \w+/)?.[0] || '4H';
+    const flags = r.res.match(/([A-Z_]{5,})/g)?.slice(0,2).join(', ') || '';
+    return `<tr>
+      <td style="white-space:nowrap;font-size:11px;color:var(--muted)">${r.t.substring(0,16)}</td>
+      <td style="font-size:12px;font-weight:500">${name}</td>
+      <td style="font-size:11px;color:var(--muted)">${asset}</td>
+      <td>${srD}</td>
+      <td style="color:var(--muted);font-size:11px">${r.ois.substring(0,10)||'—'}</td>
+      <td style="color:var(--muted);font-size:11px">—</td>
+      <td style="font-size:11px;color:var(--yellow)">${flags}</td>
+      <td>${badge(r.isPass?'pass':r.isFail?'fail':'')}</td>
+    </tr>`;
+  }).join('');
+
+  // Candidates
+  document.getElementById('candidatesContent').innerHTML = `<div class="section">
+    <div class="section-header"><span class="section-title">🏆 L1 候選策略（共 ${CANDIDATES.length} 個）</span></div>
+    <div class="section-body">${CANDIDATES.map(renderCand).join('')}</div>
+  </div>`;
+
+  // Strategies
+  document.getElementById('strategiesContent').innerHTML = `<div style="text-align:center;padding:48px;color:var(--muted)">
+    <div style="font-size:48px;margin-bottom:16px">🔬</div>
+    <div style="font-size:16px;font-weight:600;color:var(--text);margin-bottom:8px">策略庫目前為空</div>
+    <div style="font-size:13px">L2 門檻：Mean OOS SR &gt; 1.8，Trades/yr ≥ 12</div>
+    <div style="margin-top:12px;font-size:12px">
+      已拒絕：E1_v4_hard24（Mean SR=0.763）、LTSC_v1.5（Mean SR=0.910）
+    </div>
+    <div style="margin-top:16px;font-size:12px;color:var(--accent)">
+      ⛏ Pipeline 持續運行中 · 2 個策略 PENDING 回測
+    </div>
+  </div>`;
 }
 
-function filterMining() {
-  const q = document.getElementById('mine-search').value.toLowerCase();
-  const f = document.getElementById('mine-filter').value;
-  const filtered = MINING_DATA.filter(d => {
-    const matchQ = !q || d.file.toLowerCase().includes(q) || d.source.toLowerCase().includes(q) || d.logic.toLowerCase().includes(q);
-    const matchF = f === 'all' || d.status.includes(f);
-    return matchQ && matchF;
-  });
-  renderMining(filtered);
+async function loadDashboard() {
+  const now = new Date().toLocaleString('zh-TW',{timeZone:'Asia/Taipei'});
+  document.getElementById('lastUpdated').textContent = `資料更新：${now}（台北）`;
+
+  // Try to load from GitHub API; fallback to baked-in data
+  let logText = LOG_DATA;
+  try {
+    const d = await ghGet('data/monitoring/MINING_LOG.md');
+    if (d.content) {
+      const remote = decodeB64(d.content);
+      if (remote.length > 100) logText = remote;
+    }
+  } catch(e) { console.warn('Using fallback log:', e.message); }
+
+  const rows = parseLog(logText);
+  updateUI(rows);
+  document.getElementById('lastUpdated').textContent += rows.length > 0 ? '' : ' (備用資料)';
 }
 
-renderMining(MINING_DATA);
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  if (btn) btn.classList.add('active');
+}
+
+window.addEventListener('load', () => {
+  loadDashboard().catch(e => { console.error(e); updateUI(parseLog(LOG_DATA)); });
+});
 </script>
 </body>
 </html>
